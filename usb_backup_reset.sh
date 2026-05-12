@@ -75,6 +75,22 @@ PARTITION="${DEVICE}1"
 
 echo "PARTITION: $PARTITION" >> /tmp/usb_test.log
 
+# Waiting partition...
+
+for i in {1..10}; do
+    if [ -b "$PARTITION" ]; then 
+        break
+    fi
+
+    echo "WAITING FOR PARTITION..." >> /tmp/usb_test.log
+    sleep 1
+done
+
+if [ ! -b "$PARTITION" ]; then
+    echo "PARTITION NOT FOUND" >> /tmp/usb_test.log
+    exit 1
+fi
+
 MOUNT_POINT="/mnt/usb-backup"
 
 mkdir -p "$MOUNT_POINT"
