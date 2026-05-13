@@ -39,7 +39,7 @@ DEST_ROOT="${USB_MOUNT%/}/backup-$(hostname)-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$DEST_ROOT"
 log "DEST_ROOT = $DEST_ROOT"
 
-mapfile -t USERS < <(awk -F: '$3 >= 1000 && $3 < 60000 && $6 ~ "^/home/" {print $1 ":" $6}' /etc/passwd)
+mapfile -t USERS < <(awk -F: '$3 >= 1000 && $3 < 60000 && $6 ~ /^\/home\// {print $1 ":" $6}' /etc/passwd)
 
 if [[ "${#USERS[@]}" -eq 0 ]]; then
     log "NO /home USERS FOUND"
@@ -59,12 +59,14 @@ for entry in "${USERS[@]}"; do
     mkdir -p "$USER_DEST"
 
     log "BACKUP START FOR $USER_NAME ($USER_HOME -> $USER_DEST)"
-    rsync -aHAX --numeric-ids --one-file-system "$USER_HOME/." "$USER_DEST/" >> "$LOG_FILE" 2>&1
-    log "BACKUP COMPLETE FOR $USER_NAME"
-
-    log "RESET START FOR $USER_NAME"
-    find "$USER_HOME" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
-    log "RESET COMPLETE FOR $USER_NAME"
+    if rsync -aHAX --numeric-ids --one-file-system "$USER_HOME/." "$USER_DEST/" >> "$LOG_FILE" 2>&1; then
+        log "BACKUP COMPLETE FOR $USER_NAME"
+        log "RESET START FOR $USER_NAME"
+        find "$USER_HOME" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+        log "RESET COMPLETE FOR $USER_NAME"
+    else
+        log "BACKUP FAILED FOR $USER_NAME - SKIPPING RESET"
+    fi
 done
 
 sync
