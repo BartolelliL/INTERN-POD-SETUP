@@ -7,6 +7,7 @@ set -Eeuo pipefail
 LOG_FILE="/tmp/usb_test.log"
 DEVICE="${1:-}"
 USB_MOUNT="${2:-}"
+SKIP_RESET="${SKIP_RESET:-no}"
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"
@@ -39,6 +40,7 @@ DEST_ROOT="${USB_MOUNT%/}/backup-$(hostname)-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$DEST_ROOT"
 log "DEST_ROOT = $DEST_ROOT"
 
+# UID 1000-59999 targets standard local human users (excluding system/service accounts).
 mapfile -t USERS < <(awk -F: '$3 >= 1000 && $3 < 60000 && $6 ~ /^\/home\// {print $1 ":" $6}' /etc/passwd)
 
 if [[ "${#USERS[@]}" -eq 0 ]]; then
@@ -61,11 +63,15 @@ for entry in "${USERS[@]}"; do
     log "BACKUP START FOR $USER_NAME ($USER_HOME -> $USER_DEST)"
     if rsync -aHAX --numeric-ids --one-file-system "$USER_HOME/." "$USER_DEST/" >> "$LOG_FILE" 2>&1; then
         log "BACKUP COMPLETE FOR $USER_NAME"
-        log "RESET START FOR $USER_NAME"
-        find "$USER_HOME" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
-        log "RESET COMPLETE FOR $USER_NAME"
+        if [[ "$SKIP_RESET" == "yes" ]]; then
+            log "RESET SKIPPED FOR $USER_NAME (SKIP_RESET=yes)"
+        else
+            log "RESET START FOR $USER_NAME"
+            find "$USER_HOME" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+            log "RESET COMPLETE FOR $USER_NAME"
+        fi
     else
-        log "BACKUP FAILED FOR $USER_NAME - SKIPPING RESET"
+        log "BACKUP FAILED FOR $USER_NAME - RSYNC EXIT CODE=$? - SKIPPING RESET"
     fi
 done
 
