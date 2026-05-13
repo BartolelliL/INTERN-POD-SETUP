@@ -1,6 +1,8 @@
+# EXPECTED PATH: /etc/systemd/system/usb-backup@.service
+
 [Unit]
 # %I is replaced by systemd with the detected device name (for example "sdb").
-Description=USB Backup Service on %I (EXPECTED PATH: /etc/systemd/system/usb-backup@.service)
+Description=USB Backup Service on %I
 
 [Service]
 # oneshot means: run once and exit (no background daemon).
