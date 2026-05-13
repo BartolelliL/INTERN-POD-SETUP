@@ -255,6 +255,14 @@ clear_dir() {
         return
     fi
 
+    case "$dir" in
+        "$USER_HOME"/*) ;;
+        *)
+            log "SKIP UNSAFE DIR: $dir"
+            return
+            ;;
+    esac
+
     local dotglob_state=0
     local nullglob_state=0
 
