@@ -110,7 +110,7 @@ detect_real_user() {
     fi
 
     if [ -z "$user" ]; then
-        uid_min=$(awk '/^UID_MIN[[:space:]]*/ {print $2; exit}' /etc/login.defs 2>/dev/null)
+        uid_min=$(awk ' /^[[:space:]]*#/ {next} /^UID_MIN[[:space:]]*/ {print $2; exit}' /etc/login.defs 2>/dev/null)
         if [ -z "$uid_min" ]; then
             uid_min=1000
         fi
