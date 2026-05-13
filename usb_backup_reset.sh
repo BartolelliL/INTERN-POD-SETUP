@@ -75,6 +75,10 @@ for entry in "${USERS[@]}"; do
         if [[ "$SKIP_RESET" == "yes" ]]; then
             log "RESET SKIPPED FOR $USER_NAME (SKIP_RESET=yes)"
         else
+            if [[ "$USER_HOME" != /home/* || "$USER_HOME" == "/home" ]]; then
+                log "RESET SKIPPED FOR $USER_NAME (UNSAFE HOME PATH BEFORE DELETE: $USER_HOME)"
+                continue
+            fi
             log "RESET START FOR $USER_NAME"
             find "$USER_HOME" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
             log "RESET COMPLETE FOR $USER_NAME"
