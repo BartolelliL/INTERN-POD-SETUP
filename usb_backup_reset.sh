@@ -110,7 +110,7 @@ detect_real_user() {
     fi
 
     if [ -z "$user" ]; then
-        uid_min=$(awk ' /^[[:space:]]*#/ {next} /^[[:space:]]*UID_MIN[[:space:]]*/ {print $2; exit}' /etc/login.defs 2>/dev/null)
+        uid_min=$(awk '/^[[:space:]]*#/ {next} /^[[:space:]]*UID_MIN[[:space:]]*/ {print $2; exit}' /etc/login.defs 2>/dev/null)
         if [ -z "$uid_min" ]; then
             uid_min=1000
         fi
@@ -286,22 +286,7 @@ clear_dir() {
         esac
     fi
 
-    local dotglob_state=0
-    local nullglob_state=0
-
-    shopt -q dotglob && dotglob_state=1
-    shopt -q nullglob && nullglob_state=1
-
-    shopt -s dotglob nullglob
     find "$dir" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + >> "$LOG" 2>&1
-
-    if [ "$dotglob_state" -eq 0 ]; then
-        shopt -u dotglob
-    fi
-
-    if [ "$nullglob_state" -eq 0 ]; then
-        shopt -u nullglob
-    fi
 }
 
 for dir in "${USER_DIRS[@]}"; do
