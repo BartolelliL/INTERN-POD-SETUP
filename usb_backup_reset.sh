@@ -110,7 +110,11 @@ detect_real_user() {
     fi
 
     if [ -z "$user" ]; then
-        user=$(getent passwd | awk -F: '$3>=1000 && $6 ~ /^\/home\// {print $1; exit}')
+        uid_min=$(awk '/^UID_MIN[[:space:]]+/ {print $2; exit}' /etc/login.defs 2>/dev/null)
+        if [ -z "$uid_min" ]; then
+            uid_min=1000
+        fi
+        user=$(getent passwd | awk -F: -v min="$uid_min" '$3>=min && $6 ~ /^\/home\// {print $1; exit}')
     fi
 
     echo "$user"
@@ -255,13 +259,29 @@ clear_dir() {
         return
     fi
 
-    case "$dir" in
-        "$USER_HOME"/*) ;;
-        *)
-            log "SKIP UNSAFE DIR: $dir"
-            return
-            ;;
-    esac
+    if command -v realpath >/dev/null 2>&1; then
+        local canonical_home
+        local canonical_dir
+
+        canonical_home=$(realpath -m "$USER_HOME")
+        canonical_dir=$(realpath -m "$dir")
+
+        case "$canonical_dir" in
+            "$canonical_home"/*) ;;
+            *)
+                log "SKIP UNSAFE DIR: $dir"
+                return
+                ;;
+        esac
+    else
+        case "$dir" in
+            "$USER_HOME"/*) ;;
+            *)
+                log "SKIP UNSAFE DIR: $dir"
+                return
+                ;;
+        esac
+    fi
 
     local dotglob_state=0
     local nullglob_state=0
