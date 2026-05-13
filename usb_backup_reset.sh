@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# PATH IS: /usr/local/bin/usb_backup_reset.sh
+
 LOG="/tmp/usb_test.log"
 
 log() {
