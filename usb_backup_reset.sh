@@ -71,7 +71,8 @@ for entry in "${USERS[@]}"; do
             log "RESET COMPLETE FOR $USER_NAME"
         fi
     else
-        log "BACKUP FAILED FOR $USER_NAME - RSYNC EXIT CODE=$? - SKIPPING RESET"
+        RSYNC_EXIT="$?"
+        log "BACKUP FAILED FOR $USER_NAME - RSYNC EXIT CODE=$RSYNC_EXIT - SKIPPING RESET"
     fi
 done
 
