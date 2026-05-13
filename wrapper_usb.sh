@@ -38,7 +38,7 @@ LABEL=$(blkid -o value -s LABEL "$DEVICE" 2>/dev/null || true)
 
 # Ignore unknown USB devices and exit cleanly.
 if [[ "$LABEL" != "$EXPECTED_LABEL" ]]; then
-    log "LABEL errata: $LABEL"
+    log "LABEL mismatch: $LABEL"
     exit 0
 fi
 
@@ -57,7 +57,7 @@ if [[ -z "$mount_point" ]]; then
     mounted_here=1
 fi
 
-log "USB corretta rilevata"
+log "Expected USB detected"
 
 # Execute the configured action script with device + mount point.
 "$ACTION_SCRIPT" "$DEVICE" "$mount_point"
