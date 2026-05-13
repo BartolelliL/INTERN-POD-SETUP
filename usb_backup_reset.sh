@@ -203,10 +203,19 @@ log "BACKUP START"
 
 backup_ok=1
 
+RSYNC_FLAGS=(
+    -a
+    --no-owner
+    --no-group
+    --no-perms
+    --no-acls
+    --no-xattrs
+)
+
 for dir in "${USER_DIRS[@]}"; do
     if [ -d "$dir" ]; then
         name=$(basename "$dir")
-        rsync -a "$dir/" "$BACKUP_FOLDER/$name/" >> "$LOG" 2>&1
+        rsync "${RSYNC_FLAGS[@]}" "$dir/" "$BACKUP_FOLDER/$name/" >> "$LOG" 2>&1
         if [ $? -ne 0 ]; then
             log "RSYNC FAILED: $dir"
             backup_ok=0
