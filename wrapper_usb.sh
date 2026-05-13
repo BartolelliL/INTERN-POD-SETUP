@@ -62,4 +62,4 @@ log "Expected USB detected"
 # Execute the configured action script with device + mount point.
 "$ACTION_SCRIPT" "$DEVICE" "$mount_point"
 
-log "Script completato"
+log "Script completed"
