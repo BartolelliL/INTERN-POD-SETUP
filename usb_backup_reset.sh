@@ -2,7 +2,7 @@
 
 # PATH IS: /usr/local/bin/usb_backup_reset.sh
 # This is the main operational script.
-# In short: it checks the USB label, backs up user folders, clears local copies,
+# It checks the USB label, backs up user folders, clears local copies,
 # then safely syncs and unmounts the device.
 
 LOG="/tmp/usb_test.log"
@@ -90,12 +90,12 @@ log "MOUNT OK: $MOUNT_POINT"
 ########################################
 # DETECT REAL USER
 # Try to find the active local desktop user (the person using the PC).
-########################################
+######################################## 
 
 detect_real_user() {
     local user=""
 
-    # Best method: query systemd sessions (works well on modern Linux desktops).
+    # Best method: query systemd sessions
     if command -v loginctl >/dev/null 2>&1; then
         while read -r session; do
             [ -z "$session" ] && continue
