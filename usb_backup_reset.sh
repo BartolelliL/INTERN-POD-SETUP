@@ -110,7 +110,7 @@ detect_real_user() {
     fi
 
     if [ -z "$user" ]; then
-        uid_min=$(awk ' /^[[:space:]]*#/ {next} /^UID_MIN[[:space:]]*/ {print $2; exit}' /etc/login.defs 2>/dev/null)
+        uid_min=$(awk ' /^[[:space:]]*#/ {next} /^[[:space:]]*UID_MIN[[:space:]]*/ {print $2; exit}' /etc/login.defs 2>/dev/null)
         if [ -z "$uid_min" ]; then
             uid_min=1000
         fi
@@ -171,7 +171,7 @@ get_xdg_dir() {
     local value=""
 
     if [ -f "$config" ]; then
-        value=$(grep -E "^${key}=" "$config" | tail -n1 | cut -d= -f2- | tr -d '"')
+        value=$(awk -F= -v key="$key" '$1 == key {print $2; found=1} END {if (!found) exit 1}' "$config" 2>/dev/null | tail -n1 | tr -d '"')
         value=${value/\$HOME/$USER_HOME}
         value=${value/#\~/$USER_HOME}
     fi
@@ -263,16 +263,19 @@ clear_dir() {
         local canonical_home
         local canonical_dir
 
-        canonical_home=$(realpath -e "$USER_HOME")
-        canonical_dir=$(realpath -e "$dir")
-
-        case "$canonical_dir" in
-            "$canonical_home"/*) ;;
-            *)
-                log "SKIP UNSAFE DIR: $dir"
-                return
-                ;;
-        esac
+        if canonical_home=$(realpath -e "$USER_HOME" 2>/dev/null) && \
+            canonical_dir=$(realpath -e "$dir" 2>/dev/null); then
+            case "$canonical_dir" in
+                "$canonical_home"/*) ;;
+                *)
+                    log "SKIP UNSAFE DIR: $dir"
+                    return
+                    ;;
+            esac
+        else
+            log "SKIP UNSAFE DIR: $dir"
+            return
+        fi
     else
         case "$dir" in
             "$USER_HOME"/*) ;;
@@ -290,7 +293,7 @@ clear_dir() {
     shopt -q nullglob && nullglob_state=1
 
     shopt -s dotglob nullglob
-    rm -rf "$dir"/* >> "$LOG" 2>&1
+    find "$dir" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + >> "$LOG" 2>&1
 
     if [ "$dotglob_state" -eq 0 ]; then
         shopt -u dotglob
