@@ -110,7 +110,7 @@ detect_real_user() {
     fi
 
     if [ -z "$user" ]; then
-        uid_min=$(awk '/^[[:space:]]*#/ {next} /^[[:space:]]*UID_MIN[[:space:]]*/ {print $2; exit}' /etc/login.defs 2>/dev/null)
+        uid_min=$(awk '/^[[:space:]]*#/ {next} /^[[:space:]]*UID_MIN[[:space:]]+/ {print $NF; exit}' /etc/login.defs 2>/dev/null)
         if [ -z "$uid_min" ]; then
             uid_min=1000
         fi
@@ -171,7 +171,14 @@ get_xdg_dir() {
     local value=""
 
     if [ -f "$config" ]; then
-        value=$(awk -F= -v key="$key" '$1 == key {print $2; found=1} END {if (!found) exit 1}' "$config" 2>/dev/null | tail -n1 | tr -d '"')
+        value=$(awk -F= -v key="$key" '{
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", $1)
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2)
+            if ($1 == key) {
+                print $2
+                found=1
+            }
+        } END {if (!found) exit 1}' "$config" 2>/dev/null | tail -n1 | tr -d '"')
         value=${value/\$HOME/$USER_HOME}
         value=${value/#\~/$USER_HOME}
     fi
