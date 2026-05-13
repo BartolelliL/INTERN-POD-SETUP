@@ -1,0 +1,1 @@
+ACTION=="add", SUBSYSTEM=="block", KERNEL=="sd[a-z]", TAG+="systemd", ENV{SYSTEMD_WANTS}="usb-backup@%k.service"
