@@ -1,0 +1,6 @@
+[Unit]
+Description=USB Backup Service on %I (EXPECTED PATH: /etc/systemd/system/usb-backup@.service)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/usb_backup_reset.sh /dev/%I
