@@ -110,7 +110,7 @@ detect_real_user() {
     fi
 
     if [ -z "$user" ]; then
-        uid_min=$(awk '/^UID_MIN[[:space:]]+/ {print $2; exit}' /etc/login.defs 2>/dev/null)
+        uid_min=$(awk '/^UID_MIN[[:space:]]*/ {print $2; exit}' /etc/login.defs 2>/dev/null)
         if [ -z "$uid_min" ]; then
             uid_min=1000
         fi
@@ -208,7 +208,7 @@ log "BACKUP START"
 backup_ok=1
 
 RSYNC_FLAGS=(
-    -a
+    -rlt
     --no-owner
     --no-group
     --no-perms
@@ -263,8 +263,8 @@ clear_dir() {
         local canonical_home
         local canonical_dir
 
-        canonical_home=$(realpath -m "$USER_HOME")
-        canonical_dir=$(realpath -m "$dir")
+        canonical_home=$(realpath -e "$USER_HOME")
+        canonical_dir=$(realpath -e "$dir")
 
         case "$canonical_dir" in
             "$canonical_home"/*) ;;
