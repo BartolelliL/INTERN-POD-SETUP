@@ -1,2 +1,4 @@
+# On USB block-device insertion, ask systemd to start usb-backup@<device>.service.
+# KERNEL=="sd[a-z]" targets base disk names (for example sdb).
 ACTION=="add", SUBSYSTEM=="block", KERNEL=="sd[a-z]", TAG+="systemd", ENV{SYSTEMD_WANTS}="usb-backup@%k.service"
 # PATH = /etc/udev/rules.d/99-usb-backup.rules

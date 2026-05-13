@@ -1,6 +1,9 @@
 #!/bin/bash
 
 # PATH IS: /usr/local/bin/usb_backup_reset.sh
+# This is the main operational script.
+# In short: it checks the USB label, backs up user folders, clears local copies,
+# then safely syncs and unmounts the device.
 
 LOG="/tmp/usb_test.log"
 
@@ -20,12 +23,14 @@ if [ -n "$MOUNT_POINT_ARG" ]; then
     log "PARAM MOUNT POINT = $MOUNT_POINT_ARG"
 fi
 
+# Here we use the full device path passed by udev/systemd (example: /dev/sdb1).
 PARTITION="$DEVICE"
 
 log "PARTITION = $PARTITION"
 
 ########################################
 # LABEL DETECTION
+# Only continue if this is the expected USB key.
 ########################################
 
 LABEL=$(blkid -s LABEL -o value "$PARTITION" 2>/dev/null)
@@ -43,6 +48,7 @@ log "LABEL MATCH"
 
 ########################################
 # WAIT BEFORE MOUNT
+# Small delay so the OS can finish preparing the device.
 ########################################
 
 log "WAIT BEFORE MOUNT..."
@@ -51,6 +57,7 @@ sleep 5
 
 ########################################
 # MOUNT
+# Reuse existing mount if already mounted, otherwise mount it now.
 ########################################
 
 MOUNT_POINT=""
@@ -82,11 +89,13 @@ log "MOUNT OK: $MOUNT_POINT"
 
 ########################################
 # DETECT REAL USER
+# Try to find the active local desktop user (the person using the PC).
 ########################################
 
 detect_real_user() {
     local user=""
 
+    # Best method: query systemd sessions (works well on modern Linux desktops).
     if command -v loginctl >/dev/null 2>&1; then
         while read -r session; do
             [ -z "$session" ] && continue
@@ -107,10 +116,12 @@ detect_real_user() {
         done < <(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $1}')
     fi
 
+    # Fallback 1: first logged-in user from `who`.
     if [ -z "$user" ]; then
         user=$(who | awk 'NR==1{print $1}')
     fi
 
+    # Fallback 2: first standard human user account in /home.
     if [ -z "$user" ]; then
         uid_min=$(awk '/^[[:space:]]*#/ {next} /^[[:space:]]*UID_MIN[[:space:]]+/ {print $NF; exit}' /etc/login.defs 2>/dev/null)
         if [ -z "$uid_min" ]; then
@@ -152,6 +163,7 @@ fi
 
 ########################################
 # BACKUP FOLDER
+# Create a timestamped destination on the USB.
 ########################################
 
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
@@ -164,6 +176,7 @@ log "BACKUP FOLDER = $BACKUP_FOLDER"
 
 ########################################
 # RSYNC BACKUP
+# Resolve user folders (Desktop, Documents, etc.) and copy them to USB.
 ########################################
 
 get_xdg_dir() {
@@ -172,6 +185,7 @@ get_xdg_dir() {
     local config="$USER_HOME/.config/user-dirs.dirs"
     local value=""
 
+    # Read per-user folder configuration if available.
     if [ -f "$config" ]; then
         value=$(awk -F= -v key="$key" '{
             gsub(/^[[:space:]]+|[[:space:]]+$/, "", $1)
@@ -185,6 +199,7 @@ get_xdg_dir() {
         value=${value/#\~/$USER_HOME}
     fi
 
+    # Fallback to conventional folder names if config file is missing.
     if [ -z "$value" ]; then
         value="$USER_HOME/$fallback"
     fi
@@ -218,6 +233,8 @@ backup_ok=1
 
 RSYNC_FLAGS=(
     -rlt
+    # Do not preserve ownership/permissions/ACL/xattrs to avoid permission issues
+    # across different machines and users.
     --no-owner
     --no-group
     --no-perms
@@ -242,6 +259,7 @@ log "BACKUP COMPLETE"
 
 ########################################
 # FLUSH TO USB
+# Force pending writes to disk before any cleanup.
 ########################################
 
 sync
@@ -250,6 +268,7 @@ log "SYNC COMPLETE"
 
 ########################################
 # RESET USER FILES
+# Only remove local files if backup succeeded.
 ########################################
 
 if [ "$backup_ok" -ne 1 ]; then
@@ -268,6 +287,7 @@ clear_dir() {
         return
     fi
 
+    # Safety check: ensure the directory is actually inside the detected home path.
     if command -v realpath >/dev/null 2>&1; then
         local canonical_home
         local canonical_dir
@@ -295,6 +315,7 @@ clear_dir() {
         esac
     fi
 
+    # Delete only directory contents, not the directory itself.
     find "$dir" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + >> "$LOG" 2>&1
 }
 
@@ -306,12 +327,14 @@ log "RESET COMPLETE"
 
 ########################################
 # FINAL SYNC
+# Ensure all file operations are committed before optional unmount.
 ########################################
 
 sync
 
 ########################################
 # UNMOUNT
+# Unmount only if this script mounted the device.
 ########################################
 
 if [ "$mounted_here" -eq 1 ]; then
