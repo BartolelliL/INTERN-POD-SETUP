@@ -56,12 +56,21 @@ for entry in "${USERS[@]}"; do
         log "SKIP $USER_NAME (HOME NOT FOUND: $USER_HOME)"
         continue
     fi
+    if [[ "$USER_HOME" != /home/* || "$USER_HOME" == "/home" ]]; then
+        log "SKIP $USER_NAME (UNSAFE HOME PATH: $USER_HOME)"
+        continue
+    fi
 
     USER_DEST="$DEST_ROOT/$USER_NAME"
     mkdir -p "$USER_DEST"
 
     log "BACKUP START FOR $USER_NAME ($USER_HOME -> $USER_DEST)"
-    if rsync -aHAX --numeric-ids --one-file-system "$USER_HOME/." "$USER_DEST/" >> "$LOG_FILE" 2>&1; then
+    set +e
+    rsync -aHAX --numeric-ids --one-file-system "$USER_HOME/." "$USER_DEST/" >> "$LOG_FILE" 2>&1
+    RSYNC_EXIT="$?"
+    set -e
+
+    if [[ "$RSYNC_EXIT" -eq 0 ]]; then
         log "BACKUP COMPLETE FOR $USER_NAME"
         if [[ "$SKIP_RESET" == "yes" ]]; then
             log "RESET SKIPPED FOR $USER_NAME (SKIP_RESET=yes)"
@@ -71,7 +80,6 @@ for entry in "${USERS[@]}"; do
             log "RESET COMPLETE FOR $USER_NAME"
         fi
     else
-        RSYNC_EXIT="$?"
         log "BACKUP FAILED FOR $USER_NAME - RSYNC EXIT CODE=$RSYNC_EXIT - SKIPPING RESET"
     fi
 done
